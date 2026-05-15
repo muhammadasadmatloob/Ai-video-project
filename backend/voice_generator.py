@@ -6,6 +6,5 @@ async def generate_voice(text, filename):
         voice="en-US-ChristopherNeural",
         rate="+5%"
     )
-
     await tts.save(filename)
     return filename

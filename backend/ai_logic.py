@@ -1,11 +1,11 @@
-import os, json
+import os
+import json
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 
 def generate_script_json(user_topic, duration):
     scene_count = max(4, duration // 6)
@@ -14,17 +14,15 @@ def generate_script_json(user_topic, duration):
 
     prompt = f"""
 Return ONLY valid JSON.
-
 Topic: {user_topic}
-Duration: {duration}
-
+Duration: {duration} seconds
 Scenes: {scene_count}
 
 Each scene must include:
-- narration
-- keywords (2-3)
-- caption
-- subtitle_words (exact words only)
+- narration (string)
+- keywords (list of 2-3 search terms for stock video)
+- caption (string)
+- subtitle_words (list of exact words from the narration)
 
 Return JSON format:
 {{
@@ -39,7 +37,6 @@ Return JSON format:
   ]
 }}
 """
-
     res = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
@@ -49,7 +46,7 @@ Return JSON format:
 
     data = json.loads(res.choices[0].message.content)
 
-    # convert keywords list → string for FFmpeg compatibility
+    # Convert keywords list to string for FFmpeg compatibility
     for s in data.get("scenes", []):
         if isinstance(s.get("keywords"), list):
             s["keywords"] = " ".join(s["keywords"])
