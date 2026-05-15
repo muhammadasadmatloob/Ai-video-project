@@ -2,16 +2,25 @@ import subprocess
 import os
 import imageio_ffmpeg
 
-# ✅ FIX: Grabs the portable FFmpeg binary installed via pip
-FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+# If the custom full ffmpeg exists (on Render), use it. Otherwise, fallback to imageio_ffmpeg (Local testing)
+if os.path.exists("./ffmpeg"):
+    FFMPEG_PATH = "./ffmpeg"
+else:
+    FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+
+# If the downloaded font exists (on Render), use it.
+FONT_PATH = "font.ttf" if os.path.exists("font.ttf") else ""
 
 def build_drawtext_filter(subs):
     if not subs:
         return ""
     filters = []
     for s in subs:
+        # Inject the font file into the command if it exists
+        font_config = f"fontfile={FONT_PATH}:" if FONT_PATH else ""
+        
         filters.append(
-            f"drawtext=text='{s['word']}':"
+            f"drawtext={font_config}text='{s['word']}':"
             f"enable='between(t,{s['start']},{s['end']})':"
             f"fontcolor=white:fontsize=48:"
             f"x=(w-text_w)/2:y=h*0.8:borderw=4:bordercolor=black"
