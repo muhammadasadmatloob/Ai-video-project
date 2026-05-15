@@ -10,18 +10,21 @@ from render_engine import stitch_video
 import uuid
 import os
 import traceback
-import asyncio
 
 load_dotenv()
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://lumiaflims.vercel.app")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:5173", "https://lumiaflims.vercel.app"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "https://lumiaflims.vercel.app",
+        FRONTEND_URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,10 +52,9 @@ async def start_video_generation(
 
     print(f"🚀 Job {job_id} started")
 
-    # FIX: background task must run sync wrapper
+    # Fixed: Removed asyncio.run. FastAPI handles async background tasks automatically.
     background_tasks.add_task(
-        asyncio.run,
-        run_full_pipeline(topic, job_id, user_id, ratio, duration)
+        run_full_pipeline, topic, job_id, user_id, ratio, duration
     )
 
     return {"job_id": job_id}
