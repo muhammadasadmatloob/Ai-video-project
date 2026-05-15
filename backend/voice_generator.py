@@ -1,11 +1,11 @@
 import edge_tts
 
 async def generate_voice(text, filename):
-    communicate = edge_tts.Communicate(
+    tts = edge_tts.Communicate(
         text,
-        voice="en-US-ChristopherNeural",  # 🔥 Very dramatic, expressive human-like voice
-        rate="+5%",                       # 🔥 Slight speed increase to keep it engaging
-        pitch="+0Hz"
+        voice="en-US-ChristopherNeural",
+        rate="+5%"
     )
-    await communicate.save(filename)
+
+    await tts.save(filename)
     return filename

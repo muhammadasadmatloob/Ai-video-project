@@ -10,63 +10,31 @@ from render_engine import stitch_video
 import uuid
 import os
 import traceback
+import asyncio
 
-# =========================
-# LOAD ENV VARIABLES
-# =========================
 load_dotenv()
 
-# =========================
-# ENV URLS
-# =========================
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "http://localhost:5173"
-)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
-BACKEND_URL = os.getenv(
-    "BACKEND_URL",
-    "http://127.0.0.1:8000"
-)
-
-# =========================
-# FASTAPI INIT
-# =========================
 app = FastAPI()
 
-# =========================
-# CORS
-# =========================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        FRONTEND_URL,
-        "http://localhost:5173",
-        "https://lumiaflims.vercel.app"
-    ],
+    allow_origins=[FRONTEND_URL, "http://localhost:5173", "https://lumiaflims.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# TEMP STORAGE
-# =========================
 TEMP_DIR = "temp"
-
-if not os.path.exists(TEMP_DIR):
-    os.makedirs(TEMP_DIR)
+os.makedirs(TEMP_DIR, exist_ok=True)
 
 app.mount("/temp", StaticFiles(directory=TEMP_DIR), name="temp")
 
-# =========================
-# JOB STORAGE
-# =========================
 jobs = {}
 
-# =========================
-# START VIDEO GENERATION
-# =========================
+
 @app.post("/generate-video")
 async def start_video_generation(
     background_tasks: BackgroundTasks,
@@ -77,59 +45,28 @@ async def start_video_generation(
 ):
     job_id = str(uuid.uuid4())[:8]
 
-    jobs[job_id] = {
-        "status": "processing",
-        "progress": 10
-    }
+    jobs[job_id] = {"status": "processing", "progress": 10}
 
-    print(f"🚀 Job {job_id} started for: {topic}")
+    print(f"🚀 Job {job_id} started")
 
+    # FIX: background task must run sync wrapper
     background_tasks.add_task(
-        run_full_pipeline,
-        topic,
-        job_id,
-        user_id,
-        ratio,
-        duration
+        asyncio.run,
+        run_full_pipeline(topic, job_id, user_id, ratio, duration)
     )
 
-    return {
-        "job_id": job_id
-    }
+    return {"job_id": job_id}
 
-# =========================
-# FULL PIPELINE
-# =========================
-async def run_full_pipeline(
-    topic,
-    job_id,
-    user_id,
-    ratio,
-    duration
-):
+
+async def run_full_pipeline(topic, job_id, user_id, ratio, duration):
     try:
         user_folder = os.path.join(TEMP_DIR, user_id)
+        os.makedirs(user_folder, exist_ok=True)
 
-        if not os.path.exists(user_folder):
-            os.makedirs(user_folder)
-
-        # =========================
-        # 1. SCRIPT GENERATION
-        # =========================
         script = generate_script_json(topic, duration)
-
         jobs[job_id]["progress"] = 30
 
-        print(f"📝 Script generated for {job_id}")
-
-        # =========================
-        # 2. ASSET PROCESSING
-        # =========================
-        orientation = (
-            "portrait"
-            if ratio == "9:16"
-            else "landscape"
-        )
+        orientation = "portrait" if ratio == "9:16" else "landscape"
 
         assets = await process_video_job(
             script,
@@ -141,11 +78,6 @@ async def run_full_pipeline(
 
         jobs[job_id]["progress"] = 70
 
-        print(f"🎙️ Assets downloaded for {job_id}")
-
-        # =========================
-        # 3. FINAL RENDER
-        # =========================
         final_video_path = stitch_video(
             assets,
             job_id,
@@ -153,14 +85,7 @@ async def run_full_pipeline(
             ratio
         )
 
-        # =========================
-        # FINAL VIDEO URL
-        # =========================
-        video_url = (
-            f"{BACKEND_URL}/temp/"
-            f"{user_id}/"
-            f"{os.path.basename(final_video_path)}"
-        )
+        video_url = f"{BACKEND_URL}/temp/{user_id}/{os.path.basename(final_video_path)}"
 
         jobs[job_id] = {
             "status": "completed",
@@ -168,87 +93,47 @@ async def run_full_pipeline(
             "progress": 100
         }
 
-        print(f"✅ Job {job_id} completed!")
+        print(f"✅ Job {job_id} completed")
 
     except Exception as e:
-        print(f"❌ ERROR IN PIPELINE ({job_id}):")
-        traceback.print_exc()
+        print("❌ PIPELINE ERROR:", traceback.format_exc())
 
         jobs[job_id] = {
             "status": "failed",
             "error": str(e)
         }
 
-# =========================
-# JOB STATUS
-# =========================
+
 @app.get("/job-status/{job_id}")
 async def get_status(job_id: str):
-    return jobs.get(
-        job_id,
-        {"status": "not_found"}
-    )
+    return jobs.get(job_id, {"status": "not_found"})
 
-# =========================
-# USER VIDEO GALLERY
-# =========================
+
 @app.get("/user-videos/{user_id}")
 async def get_user_gallery(user_id: str):
+    folder = os.path.join(TEMP_DIR, user_id)
 
-    user_folder = os.path.join(
-        TEMP_DIR,
-        user_id
-    )
-
-    if not os.path.exists(user_folder):
+    if not os.path.exists(folder):
         return {"videos": []}
 
-    videos = []
-
-    for file in os.listdir(user_folder):
-
-        if file.endswith("_final.mp4"):
-
-            videos.append({
-                "name": file,
-                "url": (
-                    f"{BACKEND_URL}/temp/"
-                    f"{user_id}/{file}"
-                )
-            })
+    videos = [
+        {
+            "name": f,
+            "url": f"{BACKEND_URL}/temp/{user_id}/{f}"
+        }
+        for f in os.listdir(folder)
+        if f.endswith("_final.mp4")
+    ]
 
     return {"videos": videos}
 
-# =========================
-# DELETE VIDEO
-# =========================
+
 @app.delete("/delete-video/{user_id}/{file_name}")
-async def delete_video(
-    user_id: str,
-    file_name: str
-):
-    file_path = os.path.join(
-        TEMP_DIR,
-        user_id,
-        file_name
-    )
+async def delete_video(user_id: str, file_name: str):
+    path = os.path.join(TEMP_DIR, user_id, file_name)
 
-    if os.path.exists(file_path):
+    if os.path.exists(path):
+        os.remove(path)
+        return {"status": "deleted"}
 
-        try:
-            os.remove(file_path)
-
-            return {
-                "status": "deleted"
-            }
-
-        except Exception as e:
-
-            return {
-                "status": "error",
-                "message": str(e)
-            }
-
-    return {
-        "status": "not_found"
-    }
+    return {"status": "not_found"}

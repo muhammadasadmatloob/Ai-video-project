@@ -3,64 +3,55 @@ from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
+
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-def generate_script_json(user_topic, duration):
 
+def generate_script_json(user_topic, duration):
     scene_count = max(4, duration // 6)
     total_words = int(duration * 2.4)
     words_per_scene = max(35, total_words // scene_count)
 
     prompt = f"""
-You are an award-winning cinematic documentary writer and TikTok/YouTube Shorts expert.
+Return ONLY valid JSON.
 
-TOPIC: {user_topic}
-DURATION: {duration}s
-SCENES: {scene_count}
+Topic: {user_topic}
+Duration: {duration}
 
-RULES:
-- Scene 1 MUST have a powerful, curiosity-inducing hook to grab attention instantly.
-- The tone must be dramatic, emotional, highly engaging, and profound. 
-- Use rich, descriptive, and humanized storytelling. No robotic phrasing.
-- Each scene needs ~{words_per_scene} words of continuous, flowing narration.
+Scenes: {scene_count}
 
-IMPORTANT OUTPUT:
-1. narration → full, engaging, expressive storytelling.
-2. keywords → A JSON ARRAY of 2 to 3 precise visual search terms.
-3. caption → MUST summarize narration exactly.
-4. subtitle_words → MUST be EXACT words from narration (in order, stripped of punctuation for pacing).
+Each scene must include:
+- narration
+- keywords (2-3)
+- caption
+- subtitle_words (exact words only)
 
-CRITICAL:
-- Your output MUST be perfectly valid JSON.
-
-Return JSON ONLY formatted exactly like this:
+Return JSON format:
 {{
   "title": "{user_topic}",
   "scenes": [
     {{
-      "narration": "...",
-      "keywords": ["neon cityscape", "futuristic buildings", "cyberpunk"],
-      "caption": "...",
-      "subtitle_words": ["word1", "word2", "word3"]
+      "narration": "",
+      "keywords": [],
+      "caption": "",
+      "subtitle_words": []
     }}
   ]
 }}
 """
 
-    completion = client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
+    res = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"},
-        temperature=0.8
+        temperature=0.7
     )
 
-    # 1. Safely load the generated JSON
-    script_data = json.loads(completion.choices[0].message.content)
+    data = json.loads(res.choices[0].message.content)
 
-    # 2. Convert the keywords array into a space-separated string behind the scenes
-    # This ensures your video_fetcher.py still works perfectly without any changes.
-    for scene in script_data.get("scenes", []):
-        if isinstance(scene.get("keywords"), list):
-            scene["keywords"] = " ".join(scene["keywords"])
+    # convert keywords list → string for FFmpeg compatibility
+    for s in data.get("scenes", []):
+        if isinstance(s.get("keywords"), list):
+            s["keywords"] = " ".join(s["keywords"])
 
-    return script_data
+    return data
