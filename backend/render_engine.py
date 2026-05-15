@@ -1,7 +1,9 @@
 import subprocess
 import os
+import imageio_ffmpeg
 
-FFMPEG_PATH = "ffmpeg"
+# ✅ FIX: Grabs the portable FFmpeg binary installed via pip
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
 def build_drawtext_filter(subs):
     if not subs:
