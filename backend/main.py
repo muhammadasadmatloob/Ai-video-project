@@ -15,11 +15,13 @@ import traceback
 
 load_dotenv()
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://lumiaflims.vercel.app")
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
-TEMP_DIR = "temp"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMP_DIR = os.path.join(BASE_DIR, "temp")
 
-# Run cleanup automatically when the server starts
+# Strip trailing slashes to prevent exact-match CORS errors
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://lumiaflims.vercel.app").rstrip("/")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🧹 Running startup cleanup...")
@@ -28,13 +30,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Robust CORS mapping for local dev and production
+origins = list(set([
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://lumiaflims.vercel.app",
+    FRONTEND_URL
+]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", 
-        "https://lumiaflims.vercel.app",
-        FRONTEND_URL
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

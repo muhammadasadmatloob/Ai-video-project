@@ -13,6 +13,7 @@ export default function SplashScreen() {
       <motion.div 
         initial={{ width: 0 }}
         animate={{ width: 200 }}
+        transition={{ duration: 1.5, ease: "easeInOut" }}
         className="h-1 bg-indigo-500 mt-4 rounded-full"
       />
     </div>

@@ -23,7 +23,7 @@ def build_timed_subtitles(words, scene_duration=6):
 
     for i, w in enumerate(words):
         out.append({
-            "word": w.replace("'", "").replace('"', ''), # Clean quotes for ffmpeg
+            "word": w.replace("'", "").replace('"', ''), 
             "start": round(t, 2),
             "end": round(t + word_time, 2)
         })
@@ -47,7 +47,6 @@ async def process_video_job(script_data, job_id, user_folder, duration, orientat
         audio = os.path.join(user_folder, f"{job_id}_s{i}.mp3")
         video = os.path.join(user_folder, f"{job_id}_s{i}.mp4")
 
-        # Run downloads concurrently
         await asyncio.gather(
             generate_voice(scene["narration"], audio),
             download_file(scene["final_v_url"], video)

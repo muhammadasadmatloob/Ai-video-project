@@ -5,16 +5,12 @@ import * as THREE from 'three';
 import * as random from 'maath/random/dist/maath-random.esm';
 
 function Stars() {
-  // 1. Explicitly type the Ref as THREE.Points
   const ref = useRef<THREE.Points>(null!);
   
-  // 2. State is explicitly typed as Float32Array
   const [sphere] = useState<Float32Array>(() => {
-    const data = random.inSphere(new Float32Array(5000), { radius: 1.5 });
-    return data;
+    return random.inSphere(new Float32Array(5000), { radius: 1.5 }) as Float32Array;
   });
 
-  // 3. Delta-based rotation for consistent speed on all monitors (60Hz vs 144Hz)
   useFrame((_state, delta) => {
     if (ref.current) {
       ref.current.rotation.x -= delta / 10;

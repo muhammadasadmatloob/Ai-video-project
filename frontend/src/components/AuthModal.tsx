@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from '../auth/firebase'; 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword 
-} from 'firebase/auth';
-// FIX: FirebaseError must be imported from 'firebase/app'
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 
 interface AuthModalProps {
@@ -19,7 +15,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [error, setError] = useState<string>("");
 
   const validatePassword = (pw: string): boolean => {
-    // 8+ chars, 1 upper, 1 lower, 1 special, 1 number
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return regex.test(pw);
   };
@@ -28,7 +23,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     setError("");
     
-    if (!validatePassword(password)) {
+    if (!isLogin && !validatePassword(password)) {
       setError("Password must be 8+ chars, include uppercase, lowercase, number, and special char.");
       return;
     }
@@ -41,10 +36,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
       onClose();
     } catch (err: unknown) {
-      // FIX: Narrow the type of 'err' to FirebaseError to solve 'unknown' type issue
       if (err instanceof FirebaseError) {
-        // Now 'err' is recognized as FirebaseError, so .message is accessible
-        setError(err.message);
+        setError(err.message.replace("Firebase: ", ""));
       } else {
         setError("An unexpected authentication error occurred.");
       }
@@ -69,7 +62,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <input 
               type="email" 
               placeholder="name@example.com" 
-              className="w-full bg-black/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all" 
+              className="w-full bg-black/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 ring-indigo-500 text-white transition-all" 
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               required 
@@ -81,7 +74,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <input 
               type="password" 
               placeholder="••••••••" 
-              className="w-full bg-black/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition-all" 
+              className="w-full bg-black/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-2 ring-indigo-500 text-white transition-all" 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
               required 
@@ -96,7 +89,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           <button 
             type="submit" 
-            className="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+            className="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 mt-4"
           >
             {isLogin ? 'Sign In' : 'Create Account'}
           </button>

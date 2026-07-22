@@ -46,9 +46,8 @@ Return JSON format:
 
     data = json.loads(res.choices[0].message.content)
 
-    # Convert keywords list to string for FFmpeg compatibility
     for s in data.get("scenes", []):
         if isinstance(s.get("keywords"), list):
-            s["keywords"] = " ".join(s["keywords"])
+            s["keywords"] = ", ".join(s["keywords"])
 
     return data
