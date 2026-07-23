@@ -12,6 +12,7 @@ from cleanup import delete_old_folders
 import uuid
 import os
 import traceback
+import asyncio
 
 load_dotenv()
 
@@ -24,7 +25,7 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🧹 Running startup cleanup...")
+    print("Running startup cleanup...")
     delete_old_folders(target_dir=TEMP_DIR, age_hours=24)
     yield
 
@@ -62,14 +63,14 @@ async def start_video_generation(
 ):
     job_id = str(uuid.uuid4())[:8]
     jobs[job_id] = {"status": "processing", "progress": 10}
-    print(f"🚀 Job {job_id} started for user {user_id}")
+    print(f"Job {job_id} started for user {user_id}")
 
     background_tasks.add_task(
         run_full_pipeline, topic, job_id, user_id, ratio, duration
     )
     return {"job_id": job_id}
 
-async def run_full_pipeline(topic, job_id, user_id, ratio, duration):
+def run_full_pipeline(topic, job_id, user_id, ratio, duration):
     try:
         user_folder = os.path.join(TEMP_DIR, user_id)
         os.makedirs(user_folder, exist_ok=True)
@@ -79,13 +80,13 @@ async def run_full_pipeline(topic, job_id, user_id, ratio, duration):
 
         orientation = "portrait" if ratio == "9:16" else "landscape"
 
-        assets = await process_video_job(
+        assets = asyncio.run(process_video_job(
             script,
             job_id,
             user_folder,
             duration,
             orientation
-        )
+        ))
         jobs[job_id]["progress"] = 70
 
         final_video_path = stitch_video(assets, job_id, user_folder, ratio)
@@ -97,10 +98,10 @@ async def run_full_pipeline(topic, job_id, user_id, ratio, duration):
             "url": video_url,
             "progress": 100
         }
-        print(f"✅ Job {job_id} completed successfully")
+        print(f"Job {job_id} completed successfully")
 
     except Exception as e:
-        print("❌ PIPELINE ERROR:\n", traceback.format_exc())
+        print("PIPELINE ERROR:\n", traceback.format_exc())
         jobs[job_id] = {
             "status": "failed",
             "error": str(e)

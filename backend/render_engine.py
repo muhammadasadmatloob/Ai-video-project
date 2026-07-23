@@ -98,7 +98,7 @@ def stitch_video(assets, job_id, user_folder, ratio):
             out
         ]
 
-        print(f"🎬 Running FFmpeg Command for Scene {i}")
+        print(f"Running FFmpeg Command for Scene {i}")
         subprocess.run(cmd, check=True)
         scene_files.append(out)
 
@@ -119,8 +119,8 @@ def stitch_video(assets, job_id, user_folder, ratio):
         output
     ]
 
-    print("🎞️ Merging Final Video...")
+    print("Merging Final Video...")
     subprocess.run(final_cmd, check=True)
-    print(f"✅ Final video created: {output}")
+    print(f"Final video created: {output}")
 
     return output
