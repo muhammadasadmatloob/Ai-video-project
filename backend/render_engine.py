@@ -60,9 +60,9 @@ def stitch_video(assets, job_id, user_folder, ratio):
     output = os.path.join(user_folder, f"{job_id}_final.mp4")
 
     if ratio == "9:16":
-        w, h = 720, 1280
+        w, h = 480, 854
     else:
-        w, h = 1280, 720
+        w, h = 854, 480
 
     scene_files = []
 
@@ -85,6 +85,7 @@ def stitch_video(assets, job_id, user_folder, ratio):
         cmd = [
             FFMPEG_PATH,
             "-y",
+            "-threads", "1",
             "-stream_loop", "-1",
             "-i", a["video"],
             "-i", a["audio"],
@@ -92,7 +93,7 @@ def stitch_video(assets, job_id, user_folder, ratio):
             "-map", "[v]",
             "-map", "1:a",
             "-c:v", "libx264",
-            "-preset", "fast",
+            "-preset", "ultrafast",
             "-c:a", "aac",
             "-shortest",
             out

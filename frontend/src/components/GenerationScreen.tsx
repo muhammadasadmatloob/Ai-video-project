@@ -107,6 +107,21 @@ export default function GenerationScreen({
             setTopic(""); // Clear topic input on success
           }
 
+          if (sData.status === "not_found") {
+            if (intervalRef.current !== null) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+
+            setStatus("idle");
+            setProgress(0);
+
+            alert(
+              "The generation job was lost (the server may have restarted). Please try compiling again."
+            );
+            return;
+          }
+
           if (sData.status === "failed") {
             if (intervalRef.current !== null) {
               clearInterval(intervalRef.current);
