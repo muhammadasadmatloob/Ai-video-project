@@ -78,13 +78,14 @@ def generate_local_fallback_script(topic, scene_count, style="viral_shorts", tar
     }
 
 def generate_script_json(user_topic, duration, style="viral_shorts"):
-    scene_count = max(4, min(10, duration // 5))
-    total_words = int(duration * 2.25)
-    words_per_scene = max(15, total_words // scene_count)
+    effective_duration = duration + 20
+    scene_count = max(5, min(14, effective_duration // 5))
+    total_words = int(effective_duration * 2.5)
+    words_per_scene = max(18, total_words // scene_count)
 
     if not client:
         print("GROQ_API_KEY is not configured. Using high-retention local script generator...")
-        return generate_local_fallback_script(user_topic, scene_count, style, target_duration=duration)
+        return generate_local_fallback_script(user_topic, scene_count, style, target_duration=effective_duration)
 
     style_instructions = {
         "viral_shorts": "Create a high-energy, fast-paced YouTube Shorts script. Start with a 3-second shocking viral hook. Short punchy sentences (5-10 words max). High curiosity gap.",
@@ -98,14 +99,15 @@ def generate_script_json(user_topic, duration, style="viral_shorts"):
     prompt = f"""
 Return ONLY valid JSON.
 Topic: {user_topic}
-Target Duration: {duration} seconds
+Requested Duration: {duration} seconds
+Target Extended Script Duration: {effective_duration} seconds
 Scenes Count: {scene_count}
 Total Script Word Target: Exactly {total_words} words (approx {words_per_scene} words per scene).
 Script Style: {selected_instruction}
 
 IMPORTANT RULES FOR YOUTUBE RETENTION & LENGTH ACCURACY:
 1. Scene 1 narration MUST be an attention-grabbing, curiosity-driven viral hook. NO 'Welcome to' or 'In this video'!
-2. Total words across ALL scenes MUST equal roughly {total_words} words so that spoken voice narration fills the full {duration} seconds duration. DO NOT make short 5-word scenes!
+2. Total words across ALL scenes MUST equal roughly {total_words} words so that spoken voice narration fills the full extended duration. DO NOT make short 5-word scenes!
 3. Sentences must be clear, high-impact, and energetic without awkward silent pauses.
 4. Keywords for each scene must be 2-3 visual search terms for HD stock videos (e.g. ['cinematic space', 'galaxy', 'abstract']).
 
@@ -132,7 +134,8 @@ Return JSON format:
         data = json.loads(res.choices[0].message.content)
     except Exception as e:
         print(f"Groq API failed ({e}). Falling back to high-retention script generator...")
-        data = generate_local_fallback_script(user_topic, scene_count, style, target_duration=duration)
+        data = generate_local_fallback_script(user_topic, scene_count, style, target_duration=effective_duration)
+
 
     for s in data.get("scenes", []):
         if isinstance(s.get("keywords"), list):

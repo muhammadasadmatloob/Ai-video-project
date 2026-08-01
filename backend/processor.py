@@ -29,10 +29,26 @@ async def download_file(url, path):
     if not url:
         url = fallback_video()
 
-    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-        r = await client.get(url)
-        with open(path, "wb") as f:
-            f.write(r.content)
+    try:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+            r = await client.get(url)
+            if r.status_code == 200 and len(r.content) > 5000:
+                with open(path, "wb") as f:
+                    f.write(r.content)
+                return
+    except Exception as e:
+        print(f"Primary video download failed ({e}), using reliable fallback...")
+
+    # Fallback to guaranteed valid video stream
+    fallback_url = fallback_video()
+    try:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+            r = await client.get(fallback_url)
+            with open(path, "wb") as f:
+                f.write(r.content)
+    except Exception as e:
+        print(f"Fallback download error: {e}")
+
 
 def build_timed_subtitles(words, actual_duration):
     if not words:
@@ -69,9 +85,9 @@ def build_timed_subtitles(words, actual_duration):
     for i, c in enumerate(chunks):
         chunk_len = len(c)
         chunk_dur = (chunk_len / total_chars) * actual_duration
-        end_time = round(t + chunk_dur, 2)
+        end_time = round(t + chunk_dur, 3)
         if i == len(chunks) - 1:
-            end_time = round(actual_duration, 2)
+            end_time = round(actual_duration, 3)
 
         formatted_word = c.upper()
         # If still over 14 chars, add newline between words for multiline centering
@@ -80,12 +96,13 @@ def build_timed_subtitles(words, actual_duration):
 
         out.append({
             "word": formatted_word,
-            "start": round(t, 2),
+            "start": round(t, 3),
             "end": end_time
         })
         t = end_time
 
     return out
+
 
 def trim_audio_silence(raw_audio):
     try:
