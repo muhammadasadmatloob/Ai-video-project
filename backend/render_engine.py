@@ -75,9 +75,12 @@ def escape_ffmpeg_text(text):
         .replace("%", "\\%")
     )
 
-def build_drawtext_filter(subs, style_key="viral_yellow", caption=""):
+def build_drawtext_filter(subs, style_key="viral_yellow", caption="", ratio="16:9"):
     style = SUBTITLE_STYLES.get(style_key, SUBTITLE_STYLES["viral_yellow"])
     filters = []
+
+    # Dynamic font size based on aspect ratio to guarantee text fits within margins
+    base_fontsize = 34 if ratio == "9:16" else 42
 
     # Optional top topic badge
     if caption:
@@ -87,10 +90,10 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption=""):
             f"{FONT_CONFIG}"
             f"text='🔥 {safe_caption.upper()}':"
             f"fontcolor=yellow:"
-            f"fontsize=24:"
+            f"fontsize=20:"
             f"x=(w-text_w)/2:"
-            f"y=h*0.08:"
-            f"box=1:boxcolor=black@0.5:boxborderw=8"
+            f"y=h*0.06:"
+            f"box=1:boxcolor=black@0.5:boxborderw=6"
         )
 
     if not subs:
@@ -107,7 +110,8 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption=""):
             f"text='{word}':"
             f"enable='between(t,{s['start']},{s['end']})':"
             f"fontcolor={style['fontcolor']}:"
-            f"fontsize={style['fontsize']}:"
+            f"fontsize={base_fontsize}:"
+            f"line_spacing=8:"
             f"x=(w-text_w)/2:"
             f"y={style['y']}"
         )
@@ -121,6 +125,7 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption=""):
         filters.append(base)
 
     return ",".join(filters)
+
 
 def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yellow", bgm="cinematic", topic="Video"):
     safe_topic = "".join([c if (c.isalnum() or c in " -_") else "" for c in topic]).strip().replace(" ", "_")
@@ -139,7 +144,8 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
 
     for i, a in enumerate(assets):
         out = os.path.join(user_folder, f"scene_{i}.mp4")
-        vf = build_drawtext_filter(a["subtitles"], subtitle_style, a.get("caption", ""))
+        vf = build_drawtext_filter(a["subtitles"], subtitle_style, a.get("caption", ""), ratio)
+
 
         # Base filter chain: High FPS, Scale, Crop, Color Grade (Contrast & Saturation)
         base_filter = (

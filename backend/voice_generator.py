@@ -1,4 +1,5 @@
 import edge_tts
+import re
 
 VOICE_MAP = {
     "guy": "en-US-GuyNeural",               # Energetic / Shorts Male
@@ -7,14 +8,24 @@ VOICE_MAP = {
     "ryan": "en-GB-RyanNeural"              # British / Documentary
 }
 
+def clean_text_for_speech(text):
+    # Remove excessive punctuation that causes long awkward pauses in TTS
+    cleaned = re.sub(r'\.{2,}', '.', text)  # Replace ... with .
+    cleaned = re.sub(r'[\,\;\:\-]{2,}', ',', cleaned) # Replace multiple commas with single
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
+
 async def generate_voice(text, filename, voice_key="guy"):
     voice_name = VOICE_MAP.get(voice_key.lower(), "en-US-GuyNeural")
-    rate = "+8%" if voice_key == "guy" else "+4%"
+    rate = "+12%" if voice_key in ["guy", "jenny"] else "+8%"
+    
+    clean_prompt = clean_text_for_speech(text)
     
     tts = edge_tts.Communicate(
-        text,
+        clean_prompt,
         voice=voice_name,
         rate=rate
     )
     await tts.save(filename)
-    return filename
+    return filename
+

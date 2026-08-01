@@ -38,19 +38,25 @@ def build_timed_subtitles(words, actual_duration):
     if not words:
         return []
 
-    # Clean words
     cleaned_words = [w.strip() for w in words if w.strip()]
     if not cleaned_words:
         return []
 
-    # Chunk into dynamic 2-3 word cards for viral retention
+    # Chunk into 1-2 word punchy cards to prevent text overflow
     chunks = []
     curr = []
+    curr_len = 0
+
     for w in cleaned_words:
-        curr.append(w)
-        if len(curr) >= 3 or len(w) > 8:
-            chunks.append(" ".join(curr))
-            curr = []
+        # If adding w exceeds 2 words or 14 chars, push current chunk
+        if len(curr) >= 2 or (curr_len + len(w)) > 12:
+            if curr:
+                chunks.append(" ".join(curr))
+            curr = [w]
+            curr_len = len(w)
+        else:
+            curr.append(w)
+            curr_len += len(w) + 1
     if curr:
         chunks.append(" ".join(curr))
 
@@ -67,8 +73,13 @@ def build_timed_subtitles(words, actual_duration):
         if i == len(chunks) - 1:
             end_time = round(actual_duration, 2)
 
+        formatted_word = c.upper()
+        # If still over 14 chars, add newline between words for multiline centering
+        if len(formatted_word) > 14 and " " in formatted_word:
+            formatted_word = formatted_word.replace(" ", "\n", 1)
+
         out.append({
-            "word": c.upper(),
+            "word": formatted_word,
             "start": round(t, 2),
             "end": end_time
         })
@@ -77,6 +88,7 @@ def build_timed_subtitles(words, actual_duration):
     return out
 
 async def process_video_job(script_data, job_id, user_folder, duration, orientation, voice="guy"):
+
     scenes = script_data.get("scenes", [])
     used = set()
 

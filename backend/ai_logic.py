@@ -14,41 +14,46 @@ except Exception as e:
     client = None
 
 
-def generate_local_fallback_script(topic, scene_count, style="viral_shorts"):
+def generate_local_fallback_script(topic, scene_count, style="viral_shorts", target_duration=30):
     title = topic.strip().title()
+    total_target_words = int(target_duration * 2.5)
+    words_per_scene = max(15, total_target_words // scene_count)
     
     if style == "viral_shorts":
         narrations = [
-            f"What if I told you that {topic} holds a secret that almost everyone gets wrong?",
-            f"When you look closely at {topic}, the reality is completely mind-blowing.",
-            f"Experts discovered that {topic} actually operates under rules nobody expected.",
-            f"Subscribe now if {topic} blew your mind today!"
+            f"What if I told you that {topic} holds a secret that almost everyone gets wrong? Today we reveal the truth.",
+            f"When you examine {topic} up close, the reality is completely mind-blowing and defies common logic.",
+            f"Top researchers discovered that {topic} actually operates under rules nobody expected, changing how we view it.",
+            f"Every single day, new breakthroughs in {topic} continue to shock experts around the globe.",
+            f"Understanding the core mechanics of {topic} gives you a huge advantage in predicting what comes next.",
+            f"Subscribe now if {topic} blew your mind today, and hit the notification bell for more insane facts!"
         ]
     elif style == "documentary":
         narrations = [
-            f"Deep within the realm of {topic} lies an extraordinary mystery waiting to be uncovered.",
-            f"For decades, researchers have analyzed {topic}, revealing unbelievable hidden facts.",
-            f"Every discovery about {topic} pushes the boundaries of human knowledge further.",
-            f"The true story of {topic} is only just beginning to take shape."
+            f"Deep within the fascinating realm of {topic} lies an extraordinary mystery that has baffled historians for generations.",
+            f"For decades, top scientists have analyzed {topic}, uncovering unbelievable hidden facts beneath the surface.",
+            f"Every single discovery about {topic} pushes the boundaries of human knowledge and technology further into the future.",
+            f"As we examine {topic} more closely, the true scope of its impact becomes strikingly clear to everyone.",
+            f"The ongoing story of {topic} is far from over, and what comes next will redefine our understanding forever."
         ]
     elif style == "educational":
         narrations = [
-            f"Here is how {topic} actually works in under sixty seconds!",
-            f"First, the core foundation of {topic} relies on fascinating natural mechanics.",
-            f"Next, when you combine these elements, {topic} produces unexpected results.",
-            f"And that is why understanding {topic} is essential for the future!"
+            f"Here is how {topic} actually works in sixty seconds or less, explained in the simplest possible way!",
+            f"First, the foundational core of {topic} relies on natural principles that interact in powerful, unique ways.",
+            f"Next, when these core elements combine under pressure, {topic} produces remarkable and unexpected results.",
+            f"Finally, mastering {topic} unlocks new possibilities across technology, science, and everyday life for everyone."
         ]
     else: # storytelling
         narrations = [
-            f"Imagine a world where {topic} changed the course of history forever.",
-            f"Against all odds, the journey through {topic} took an incredible unexpected turn.",
-            f"What happened next with {topic} left everyone absolutely speechless.",
-            f"This epic story of {topic} reminds us of what is truly possible."
+            f"Imagine a world where {topic} suddenly changed the entire course of human history forever.",
+            f"Against all impossible odds, the journey through {topic} took an unexpected turn that nobody saw coming.",
+            f"What happened next with {topic} left the entire world absolutely speechless and searching for answers.",
+            f"This epic story of {topic} serves as an incredible reminder of what human ingenuity can accomplish."
         ]
     
-    # If scene_count is greater than narrations length, pad with engaging filler
+    # Adjust narrations to match scene_count
     while len(narrations) < scene_count:
-        narrations.insert(len(narrations) - 1, f"Even more surprising is how {topic} continues to defy expectations.")
+        narrations.insert(len(narrations) - 1, f"Furthermore, examining {topic} deeper reveals even more surprising layers that defy conventional wisdom.")
         
     scenes = []
     topic_keywords = [w.strip(",.?!").lower() for w in topic.split() if len(w) > 3]
@@ -73,11 +78,13 @@ def generate_local_fallback_script(topic, scene_count, style="viral_shorts"):
     }
 
 def generate_script_json(user_topic, duration, style="viral_shorts"):
-    scene_count = max(4, duration // 6)
-    
+    scene_count = max(4, min(12, duration // 6))
+    total_words = int(duration * 2.5)
+    words_per_scene = max(15, total_words // scene_count)
+
     if not client:
         print("GROQ_API_KEY is not configured. Using high-retention local script generator...")
-        return generate_local_fallback_script(user_topic, scene_count, style)
+        return generate_local_fallback_script(user_topic, scene_count, style, target_duration=duration)
 
     style_instructions = {
         "viral_shorts": "Create a high-energy, fast-paced YouTube Shorts script. Start with a 3-second shocking viral hook. Short punchy sentences (5-10 words max). High curiosity gap.",
@@ -91,24 +98,26 @@ def generate_script_json(user_topic, duration, style="viral_shorts"):
     prompt = f"""
 Return ONLY valid JSON.
 Topic: {user_topic}
-Duration: {duration} seconds
-Scenes count: {scene_count}
+Target Duration: {duration} seconds
+Scenes Count: {scene_count}
+Total Script Word Target: Exactly {total_words} words (approx {words_per_scene} words per scene).
 Script Style: {selected_instruction}
 
-IMPORTANT RULES FOR YOUTUBE RETENTION:
+IMPORTANT RULES FOR YOUTUBE RETENTION & LENGTH ACCURACY:
 1. Scene 1 narration MUST be an attention-grabbing, curiosity-driven viral hook. NO 'Welcome to' or 'In this video'!
-2. Sentences must be punchy, clear, and high-impact.
-3. Keywords for each scene must be 2-3 visual search terms for HD stock videos (e.g. ['cinematic space', 'black hole', 'galaxy']).
+2. Total words across ALL scenes MUST equal roughly {total_words} words so that spoken voice narration fills the full {duration} seconds duration. DO NOT make short 5-word scenes!
+3. Sentences must be clear, high-impact, and energetic without awkward silent pauses.
+4. Keywords for each scene must be 2-3 visual search terms for HD stock videos (e.g. ['cinematic space', 'galaxy', 'abstract']).
 
 Return JSON format:
 {{
   "title": "{user_topic}",
   "scenes": [
     {{
-      "narration": "First scene narration...",
+      "narration": "First scene full narration containing roughly {words_per_scene} words...",
       "keywords": "cinematic space, galaxy, abstract",
       "caption": "Short badge caption",
-      "subtitle_words": ["First", "scene", "narration"]
+      "subtitle_words": ["First", "scene", "full", "narration"]
     }}
   ]
 }}
@@ -123,7 +132,7 @@ Return JSON format:
         data = json.loads(res.choices[0].message.content)
     except Exception as e:
         print(f"Groq API failed ({e}). Falling back to high-retention script generator...")
-        data = generate_local_fallback_script(user_topic, scene_count, style)
+        data = generate_local_fallback_script(user_topic, scene_count, style, target_duration=duration)
 
     for s in data.get("scenes", []):
         if isinstance(s.get("keywords"), list):
