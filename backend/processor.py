@@ -87,6 +87,23 @@ def build_timed_subtitles(words, actual_duration):
 
     return out
 
+def trim_audio_silence(raw_audio):
+    try:
+        from render_engine import FFMPEG_PATH
+        trimmed = raw_audio.replace(".mp3", "_trimmed.mp3")
+        cmd = [
+            FFMPEG_PATH,
+            "-y",
+            "-i", raw_audio,
+            "-af", "silenceremove=stop_periods=-1:stop_duration=0.1:stop_threshold=-38dB",
+            trimmed
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(trimmed):
+            os.replace(trimmed, raw_audio)
+    except Exception as e:
+        print(f"Silence trim notice: {e}")
+
 async def process_video_job(script_data, job_id, user_folder, duration, orientation, voice="guy"):
 
     scenes = script_data.get("scenes", [])
@@ -109,6 +126,7 @@ async def process_video_job(script_data, job_id, user_folder, duration, orientat
             download_file(scene["final_v_url"], video)
         )
 
+        trim_audio_silence(audio)
         audio_dur = get_audio_duration(audio)
         subtitles = build_timed_subtitles(scene.get("subtitle_words", []), audio_dur)
 
@@ -122,4 +140,5 @@ async def process_video_job(script_data, job_id, user_folder, duration, orientat
 
     return await asyncio.gather(*[
         process_scene(i, s) for i, s in enumerate(scenes)
-    ])
+    ])
+

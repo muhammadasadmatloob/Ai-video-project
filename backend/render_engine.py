@@ -82,22 +82,9 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption="", ratio="16:
     # Dynamic font size based on aspect ratio to guarantee text fits within margins
     base_fontsize = 34 if ratio == "9:16" else 42
 
-    # Optional top topic badge
-    if caption:
-        safe_caption = escape_ffmpeg_text(caption)
-        filters.append(
-            f"drawtext="
-            f"{FONT_CONFIG}"
-            f"text='🔥 {safe_caption.upper()}':"
-            f"fontcolor=yellow:"
-            f"fontsize=20:"
-            f"x=(w-text_w)/2:"
-            f"y=h*0.06:"
-            f"box=1:boxcolor=black@0.5:boxborderw=6"
-        )
-
     if not subs:
-        return ",".join(filters) if filters else ""
+        return ""
+
 
     for s in subs:
         word = escape_ffmpeg_text(s["word"])
@@ -127,12 +114,13 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption="", ratio="16:
     return ",".join(filters)
 
 
-def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yellow", bgm="cinematic", topic="Video"):
+def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yellow", bgm="cinematic", topic="Video", target_duration=None):
     safe_topic = "".join([c if (c.isalnum() or c in " -_") else "" for c in topic]).strip().replace(" ", "_")
     if not safe_topic:
         safe_topic = "Video"
     safe_topic = safe_topic[:35]
     output = os.path.join(user_folder, f"{safe_topic}_{job_id}_final.mp4")
+
 
 
     if ratio == "9:16":

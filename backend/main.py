@@ -48,10 +48,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(ASSETS_DIR, exist_ok=True)
+
 app.mount("/temp", StaticFiles(directory=TEMP_DIR), name="temp")
+app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 jobs = {}
+
 
 @app.post("/generate-video")
 async def start_video_generation(
@@ -105,8 +110,10 @@ def run_full_pipeline(topic, job_id, user_id, ratio, duration, style, voice, sub
             ratio,
             subtitle_style=subtitle_style,
             bgm=bgm,
-            topic=topic
+            topic=topic,
+            target_duration=duration
         )
+
 
 
         video_url = f"{BACKEND_URL}/temp/{user_id}/{os.path.basename(final_video_path)}"
