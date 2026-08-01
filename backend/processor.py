@@ -1,8 +1,29 @@
 import httpx
 import os
 import asyncio
+import subprocess
 from voice_generator import generate_voice
 from video_fetcher import fetch_stock_video, fallback_video
+
+def get_audio_duration(audio_path):
+    try:
+        from render_engine import FFMPEG_PATH
+        ffprobe_bin = os.path.join(os.path.dirname(FFMPEG_PATH), "ffprobe.exe")
+        if not os.path.exists(ffprobe_bin):
+            ffprobe_bin = "ffprobe"
+        
+        cmd = [
+            ffprobe_bin,
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            audio_path
+        ]
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('utf-8').strip()
+        return float(out)
+    except Exception as e:
+        print(f"Error probing audio duration ({e}). Defaulting to estimated duration.")
+        return 5.0
 
 async def download_file(url, path):
     if not url:
@@ -13,25 +34,49 @@ async def download_file(url, path):
         with open(path, "wb") as f:
             f.write(r.content)
 
-def build_timed_subtitles(words, scene_duration=6):
+def build_timed_subtitles(words, actual_duration):
     if not words:
         return []
 
-    word_time = scene_duration / max(len(words), 1)
-    t = 0
-    out = []
+    # Clean words
+    cleaned_words = [w.strip() for w in words if w.strip()]
+    if not cleaned_words:
+        return []
 
-    for i, w in enumerate(words):
+    # Chunk into dynamic 2-3 word cards for viral retention
+    chunks = []
+    curr = []
+    for w in cleaned_words:
+        curr.append(w)
+        if len(curr) >= 3 or len(w) > 8:
+            chunks.append(" ".join(curr))
+            curr = []
+    if curr:
+        chunks.append(" ".join(curr))
+
+    total_chars = sum(len(c) for c in chunks)
+    if total_chars == 0:
+        total_chars = 1
+
+    t = 0.0
+    out = []
+    for i, c in enumerate(chunks):
+        chunk_len = len(c)
+        chunk_dur = (chunk_len / total_chars) * actual_duration
+        end_time = round(t + chunk_dur, 2)
+        if i == len(chunks) - 1:
+            end_time = round(actual_duration, 2)
+
         out.append({
-            "word": w.replace("'", "").replace('"', ''), 
+            "word": c.upper(),
             "start": round(t, 2),
-            "end": round(t + word_time, 2)
+            "end": end_time
         })
-        t += word_time
+        t = end_time
 
     return out
 
-async def process_video_job(script_data, job_id, user_folder, duration, orientation):
+async def process_video_job(script_data, job_id, user_folder, duration, orientation, voice="guy"):
     scenes = script_data.get("scenes", [])
     used = set()
 
@@ -48,17 +93,21 @@ async def process_video_job(script_data, job_id, user_folder, duration, orientat
         video = os.path.join(user_folder, f"{job_id}_s{i}.mp4")
 
         await asyncio.gather(
-            generate_voice(scene["narration"], audio),
+            generate_voice(scene["narration"], audio, voice),
             download_file(scene["final_v_url"], video)
         )
+
+        audio_dur = get_audio_duration(audio)
+        subtitles = build_timed_subtitles(scene.get("subtitle_words", []), audio_dur)
 
         return {
             "video": video,
             "audio": audio,
+            "duration": audio_dur,
             "caption": scene.get("caption", ""),
-            "subtitles": build_timed_subtitles(scene.get("subtitle_words", []))
+            "subtitles": subtitles
         }
 
     return await asyncio.gather(*[
         process_scene(i, s) for i, s in enumerate(scenes)
-    ])
+    ])

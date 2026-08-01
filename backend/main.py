@@ -59,6 +59,10 @@ async def start_video_generation(
     topic: str = Form(...),
     ratio: str = Form("16:9"),
     duration: int = Form(...),
+    style: str = Form("viral_shorts"),
+    voice: str = Form("guy"),
+    subtitle_style: str = Form("viral_yellow"),
+    bgm: str = Form("cinematic"),
     user_id: str = Form(...)
 ):
     job_id = str(uuid.uuid4())[:8]
@@ -66,17 +70,21 @@ async def start_video_generation(
     print(f"Job {job_id} started for user {user_id}")
 
     background_tasks.add_task(
-        run_full_pipeline, topic, job_id, user_id, ratio, duration
+        run_full_pipeline, topic, job_id, user_id, ratio, duration, style, voice, subtitle_style, bgm
     )
     return {"job_id": job_id}
 
-def run_full_pipeline(topic, job_id, user_id, ratio, duration):
+def run_full_pipeline(topic, job_id, user_id, ratio, duration, style, voice, subtitle_style, bgm):
     try:
         user_folder = os.path.join(TEMP_DIR, user_id)
         os.makedirs(user_folder, exist_ok=True)
 
-        script = generate_script_json(topic, duration)
+        if job_id not in jobs:
+            jobs[job_id] = {"status": "processing", "progress": 10}
+
+        script = generate_script_json(topic, duration, style=style)
         jobs[job_id]["progress"] = 30
+
 
         orientation = "portrait" if ratio == "9:16" else "landscape"
 
@@ -85,11 +93,21 @@ def run_full_pipeline(topic, job_id, user_id, ratio, duration):
             job_id,
             user_folder,
             duration,
-            orientation
+            orientation,
+            voice=voice
         ))
         jobs[job_id]["progress"] = 70
 
-        final_video_path = stitch_video(assets, job_id, user_folder, ratio)
+        final_video_path = stitch_video(
+            assets, 
+            job_id, 
+            user_folder, 
+            ratio,
+            subtitle_style=subtitle_style,
+            bgm=bgm,
+            topic=topic
+        )
+
 
         video_url = f"{BACKEND_URL}/temp/{user_id}/{os.path.basename(final_video_path)}"
 
@@ -106,6 +124,7 @@ def run_full_pipeline(topic, job_id, user_id, ratio, duration):
             "status": "failed",
             "error": str(e)
         }
+
 
 @app.get("/job-status/{job_id}")
 async def get_status(job_id: str):

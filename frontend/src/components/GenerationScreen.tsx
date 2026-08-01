@@ -34,6 +34,10 @@ export default function GenerationScreen({
   const [topic, setTopic] = useState("");
   const [ratio, setRatio] = useState("16:9");
   const [duration, setDuration] = useState(30);
+  const [style, setStyle] = useState("viral_shorts");
+  const [voice, setVoice] = useState("guy");
+  const [subtitleStyle, setSubtitleStyle] = useState("viral_yellow");
+  const [bgm, setBgm] = useState("cinematic");
 
   const [status, setStatus] = useState<"idle" | "processing">("idle");
   const [progress, setProgress] = useState(0);
@@ -59,7 +63,12 @@ export default function GenerationScreen({
     formData.append("topic", topic);
     formData.append("ratio", ratio);
     formData.append("duration", duration.toString());
+    formData.append("style", style);
+    formData.append("voice", voice);
+    formData.append("subtitle_style", subtitleStyle);
+    formData.append("bgm", bgm);
     formData.append("user_id", user.uid);
+
 
     try {
       const res = await fetch(`${BACKEND_URL}/generate-video`, {
@@ -300,6 +309,124 @@ export default function GenerationScreen({
                 </div>
               </div>
 
+              {/* Script Style Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold ml-1">
+                  Script Writing Style & Hook
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: "viral_shorts", name: "Viral Shorts ⚡", desc: "Fast hook & high retention" },
+                    { id: "documentary", name: "Documentary 🎬", desc: "Cinematic & mystery narrative" },
+                    { id: "educational", name: "Explainer 💡", desc: "Did you know step-by-step" },
+                    { id: "storytelling", name: "Storytelling 📖", desc: "Dramatic & emotional arc" },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setStyle(s.id)}
+                      disabled={status === "processing"}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        style === s.id
+                          ? "bg-indigo-600/25 border-indigo-500 text-white font-bold shadow-md shadow-indigo-500/10"
+                          : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-gray-200">{s.name}</div>
+                      <div className="text-[9px] text-gray-500 mt-0.5 leading-tight">{s.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Voice Tone Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold ml-1">
+                  AI Voice Preset
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: "guy", name: "Energetic Male 🗣️" },
+                    { id: "christopher", name: "Deep Male 🎙️" },
+                    { id: "jenny", name: "Pro Female 👩" },
+                    { id: "ryan", name: "British Narrator 🇬🇧" },
+                  ].map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setVoice(v.id)}
+                      disabled={status === "processing"}
+                      className={`p-3 rounded-2xl border text-center text-xs transition-all cursor-pointer ${
+                        voice === v.id
+                          ? "bg-purple-600/25 border-purple-500 text-purple-200 font-bold"
+                          : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subtitle Style Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold ml-1">
+                  YouTube Subtitle Styling
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: "viral_yellow", name: "Viral Yellow 🟡" },
+                    { id: "dark_box", name: "Dark Banner ⬛" },
+                    { id: "neon_cyber", name: "Neon Cyber 🩵" },
+                    { id: "minimal_clean", name: "Clean Minimal ⚪" },
+                  ].map((sub) => (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => setSubtitleStyle(sub.id)}
+                      disabled={status === "processing"}
+                      className={`p-3 rounded-2xl border text-center text-xs transition-all cursor-pointer ${
+                        subtitleStyle === sub.id
+                          ? "bg-amber-500/20 border-amber-400 text-amber-300 font-bold"
+                          : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
+                      }`}
+                    >
+                      {sub.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Background Music Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold ml-1">
+                  Background Music Track
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: "cinematic", name: "Synth 🎵" },
+                    { id: "upbeat", name: "Upbeat ⚡" },
+                    { id: "lofi", name: "Lofi ☕" },
+                    { id: "none", name: "Off 🔇" },
+                  ].map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setBgm(b.id)}
+                      disabled={status === "processing"}
+                      className={`p-2.5 rounded-xl border text-center text-[11px] transition-all cursor-pointer ${
+                        bgm === b.id
+                          ? "bg-emerald-600/25 border-emerald-500 text-emerald-300 font-bold"
+                          : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
+                      }`}
+                    >
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+
               {/* Generate Button */}
               <button
                 onClick={startProduction}
@@ -467,8 +594,12 @@ export default function GenerationScreen({
 
                     <div className="flex justify-between items-center mt-4 px-1.5 pb-1">
                       <div className="flex flex-col text-left max-w-[70%]">
-                        <p className="text-xs font-bold text-gray-200 truncate" title={vid.name}>
-                          {vid.name.replace("_final.mp4", "").replace(/_/g, " ")}
+                        <p className="text-xs font-bold text-gray-200 truncate capitalize" title={vid.name}>
+                          {(() => {
+                            const nameWithoutExt = vid.name.replace("_final.mp4", "");
+                            const parts = nameWithoutExt.split("_");
+                            return (parts.length > 1 ? parts.slice(0, -1).join(" ") : nameWithoutExt).replace(/_/g, " ");
+                          })()}
                         </p>
                         <span className="text-[9px] text-gray-500 font-mono tracking-wider truncate">
                           {vid.name}
@@ -546,11 +677,16 @@ export default function GenerationScreen({
                   </div>
                   <div className="text-left">
                     <h4 className="text-sm font-black text-white uppercase tracking-wide">
-                      {activeVideo.name.replace("_final.mp4", "").replace(/_/g, " ")}
+                      {(() => {
+                        const nameWithoutExt = activeVideo.name.replace("_final.mp4", "");
+                        const parts = nameWithoutExt.split("_");
+                        return (parts.length > 1 ? parts.slice(0, -1).join(" ") : nameWithoutExt).replace(/_/g, " ");
+                      })()}
                     </h4>
                     <span className="text-[10px] text-gray-500 font-mono tracking-widest">{activeVideo.name}</span>
                   </div>
                 </div>
+
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <a
