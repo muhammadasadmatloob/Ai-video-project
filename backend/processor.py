@@ -108,42 +108,51 @@ def trim_audio_silence(raw_audio):
 async def process_video_job(script_data, job_id, user_folder, duration, orientation, voice="guy"):
 
     scenes = script_data.get("scenes", [])
+    full_script = script_data.get("full_script", "")
+    if not full_script and scenes:
+        full_script = " ".join([s.get("narration", "") for s in scenes])
+
+    # 1. Generate master continuous narration audio
+    master_audio = os.path.join(user_folder, f"{job_id}_master.mp3")
+    print(f"Generating continuous master TTS audio ({voice})...")
+    await generate_voice(full_script, master_audio, voice)
+    master_dur = get_audio_duration(master_audio)
+
+    # 2. Build full timed subtitles for master narration
+    words = full_script.split()
+    master_subtitles = build_timed_subtitles(words, master_dur)
+
+    # 3. Calculate scene duration allocations based on narration character weight
+    total_chars = sum(len(s.get("narration", "")) for s in scenes) or 1
+    
     used = set()
-
-    for s in scenes:
-        s["final_v_url"] = await fetch_stock_video(
-            s["keywords"],
-            orientation,
-            used
-        )
-        used.add(s["final_v_url"])
-
-    async def process_scene(i, scene):
-        audio = os.path.join(user_folder, f"{job_id}_s{i}.mp3")
-        video = os.path.join(user_folder, f"{job_id}_s{i}.mp4")
-
-        await asyncio.gather(
-            generate_voice(scene["narration"], audio, voice),
-            download_file(scene["final_v_url"], video)
-        )
-
-        trim_audio_silence(audio)
-        audio_dur = get_audio_duration(audio)
-        subtitles = build_timed_subtitles(scene.get("subtitle_words", []), audio_dur)
-
-        return {
-            "video": video,
-            "audio": audio,
-            "duration": audio_dur,
-            "caption": scene.get("caption", ""),
-            "subtitles": subtitles
-        }
-
-    results = []
+    scene_assets = []
+    
     for i, s in enumerate(scenes):
-        res = await process_scene(i, s)
-        results.append(res)
+        s_narration = s.get("narration", "")
+        weight = len(s_narration) / total_chars if total_chars > 0 else (1.0 / len(scenes))
+        scene_dur = round(weight * master_dur, 2)
+        if scene_dur <= 0.5:
+            scene_dur = 2.0
 
-    return results
+        v_url = await fetch_stock_video(s.get("keywords", "cinematic"), orientation, used)
+        used.add(v_url)
+
+        video_path = os.path.join(user_folder, f"{job_id}_s{i}.mp4")
+        await download_file(v_url, video_path)
+
+        scene_assets.append({
+            "video": video_path,
+            "duration": scene_dur,
+            "caption": s.get("caption", "")
+        })
+
+    return {
+        "master_audio": master_audio,
+        "master_duration": master_dur,
+        "subtitles": master_subtitles,
+        "scenes": scene_assets
+    }
+
 
 

@@ -121,33 +121,36 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
     safe_topic = safe_topic[:35]
     output = os.path.join(user_folder, f"{safe_topic}_{job_id}_final.mp4")
 
-
-
     if ratio == "9:16":
         w, h = 480, 854
     else:
         w, h = 854, 480
 
+    # Support legacy asset list or new master continuous structure
+    if isinstance(assets, dict):
+        master_audio = assets.get("master_audio")
+        subtitles = assets.get("subtitles", [])
+        scenes = assets.get("scenes", [])
+    else:
+        scenes = assets
+        master_audio = assets[0]["audio"] if assets else None
+        subtitles = assets[0]["subtitles"] if assets else []
+
     scene_files = []
 
-    for i, a in enumerate(assets):
+    for i, a in enumerate(scenes):
         out = os.path.join(user_folder, f"scene_{i}.mp4")
-        vf = build_drawtext_filter(a["subtitles"], subtitle_style, a.get("caption", ""), ratio)
+        dur = a.get("duration", 4.0)
 
-
-        # Base filter chain: High FPS, Scale, Crop, Color Grade (Contrast & Saturation)
+        # Base filter chain: High FPS, Scale, Crop, Color Grade (Contrast & Saturation) + subtle fade transitions
         base_filter = (
             f"[0:v]"
             f"fps=30,"
             f"scale={w}:{h}:force_original_aspect_ratio=increase,"
             f"crop={w}:{h},"
-            f"eq=contrast=1.08:saturation=1.2:brightness=0.01"
+            f"eq=contrast=1.08:saturation=1.2:brightness=0.01,"
+            f"fade=in:st=0:d=0.25"
         )
-
-        if vf:
-            filter_complex = f"{base_filter}[v0];[v0]{vf}[v]"
-        else:
-            filter_complex = f"{base_filter}[v]"
 
         cmd = [
             FFMPEG_PATH,
@@ -155,18 +158,15 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
             "-threads", "1",
             "-stream_loop", "-1",
             "-i", a["video"],
-            "-i", a["audio"],
-            "-filter_complex", filter_complex,
-            "-map", "[v]",
-            "-map", "1:a",
+            "-t", str(dur),
+            "-filter_complex", base_filter,
             "-c:v", "libx264",
             "-preset", "ultrafast",
-            "-c:a", "aac",
-            "-shortest",
+            "-an",
             out
         ]
 
-        print(f"Rendering Scene {i}...")
+        print(f"Rendering Scene {i} (Duration: {dur}s)...")
         subprocess.run(cmd, check=True)
         scene_files.append(out)
 
@@ -176,7 +176,7 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
             safe_path = os.path.abspath(s).replace('\\', '/')
             f.write(f"file '{safe_path}'\n")
 
-    merged_temp = os.path.join(user_folder, f"{job_id}_merged.mp4")
+    video_concat_temp = os.path.join(user_folder, f"{job_id}_vconcat.mp4")
 
     concat_cmd = [
         FFMPEG_PATH,
@@ -185,50 +185,57 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
         "-safe", "0",
         "-i", concat_file,
         "-c", "copy",
-        merged_temp
+        video_concat_temp
     ]
 
-    print("Merging Scenes...")
+    print("Merging Video Scenes...")
     subprocess.run(concat_cmd, check=True)
 
-    # Check if Background Music is requested and available
-    bgm_file = os.path.join(BASE_DIR, "assets", "bgm", f"{bgm}.mp3")
-    if bgm != "none" and os.path.exists(bgm_file):
-        print(f"Mixing Background Music: {bgm}...")
-        bgm_cmd = [
-            FFMPEG_PATH,
-            "-y",
-            "-i", merged_temp,
-            "-stream_loop", "-1",
-            "-i", bgm_file,
-            "-filter_complex", "[0:a]volume=1.0[v_aud];[1:a]volume=0.14[bgm_aud];[v_aud][bgm_aud]amix=inputs=2:duration=first:dropout_transition=2[aout]",
-            "-map", "0:v",
-            "-map", "[aout]",
-            "-c:v", "copy",
-            "-c:a", "aac",
-            output
-        ]
-        subprocess.run(bgm_cmd, check=True)
-        if os.path.exists(merged_temp):
-            try:
-                os.remove(merged_temp)
-            except Exception:
-                pass
-    else:
-        if os.path.exists(output):
-            try:
-                os.remove(output)
-            except Exception:
-                pass
-        os.rename(merged_temp, output)
+    # Build master subtitle filter chain
+    sub_filter = build_drawtext_filter(subtitles, subtitle_style, "", ratio)
 
-    # Clean up intermediate scene files to preserve memory & disk on Render free tier (512MB limit)
-    for a in assets:
+    # Audio & Subtitle Mixdown Command
+    bgm_file = os.path.join(BASE_DIR, "assets", "bgm", f"{bgm}.mp3")
+    has_bgm = bgm != "none" and os.path.exists(bgm_file)
+
+    inputs = ["-i", video_concat_temp, "-i", master_audio]
+    if has_bgm:
+        inputs.extend(["-stream_loop", "-1", "-i", bgm_file])
+
+    if has_bgm:
+        audio_filter = "[1:a]volume=1.0[v_aud];[2:a]volume=0.14[bgm_aud];[v_aud][bgm_aud]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+    else:
+        audio_filter = "[1:a]volume=1.0[aout]"
+
+    if sub_filter:
+        full_filter_complex = f"[0:v]{sub_filter}[vout]; {audio_filter}"
+        v_map = "[vout]"
+    else:
+        full_filter_complex = audio_filter
+        v_map = "0:v"
+
+    final_cmd = [
+        FFMPEG_PATH,
+        "-y",
+        *inputs,
+        "-filter_complex", full_filter_complex,
+        "-map", v_map,
+        "-map", "[aout]",
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-c:a", "aac",
+        "-shortest",
+        output
+    ]
+
+    print("Executing Final Pro Mashup Audio & Dynamic Subtitle Mixdown...")
+    subprocess.run(final_cmd, check=True)
+
+    # Clean up intermediate files
+    for a in scenes:
         try:
             if os.path.exists(a["video"]):
                 os.remove(a["video"])
-            if os.path.exists(a["audio"]):
-                os.remove(a["audio"])
         except Exception:
             pass
 
@@ -239,13 +246,15 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
         except Exception:
             pass
 
-    if os.path.exists(concat_file):
+    for tmp in [video_concat_temp, concat_file, master_audio]:
         try:
-            os.remove(concat_file)
+            if tmp and os.path.exists(tmp):
+                os.remove(tmp)
         except Exception:
             pass
 
-    print(f"Final YouTube-level video created: {output}")
+    print(f"Final YouTube Pro Mashup video created: {output}")
     return output
+
 
 

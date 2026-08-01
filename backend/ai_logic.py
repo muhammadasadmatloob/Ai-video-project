@@ -140,4 +140,7 @@ Return JSON format:
         if "subtitle_words" not in s or not s["subtitle_words"]:
             s["subtitle_words"] = s.get("narration", "").split()
 
+    full_narration_list = [s.get("narration", "").strip() for s in data.get("scenes", []) if s.get("narration", "").strip()]
+    data["full_script"] = " ".join(full_narration_list)
+
     return data
