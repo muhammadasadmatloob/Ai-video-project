@@ -9,15 +9,15 @@ VOICE_MAP = {
 }
 
 def clean_text_for_speech(text):
-    # Remove excessive punctuation that causes long awkward pauses in TTS
-    cleaned = re.sub(r'\.{2,}', '.', text)  # Replace ... with .
-    cleaned = re.sub(r'[\,\;\:\-]{2,}', ',', cleaned) # Replace multiple commas with single
+    # Remove internal commas, dashes, colons, semi-colons & quotes that cause Edge-TTS to insert robotic word pauses
+    cleaned = re.sub(r'[\,\;\:\-\"\–\—\(\)\[\]]', ' ', text)
+    cleaned = re.sub(r'\.{2,}', '.', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
 async def generate_voice(text, filename, voice_key="guy"):
     voice_name = VOICE_MAP.get(voice_key.lower(), "en-US-GuyNeural")
-    rate = "+4%" # Moderate, clear speech pacing
+    rate = "+12%" # Moderate, fluid human speech — faster than default to avoid word-by-word pauses
     
     clean_prompt = clean_text_for_speech(text)
     
@@ -28,5 +28,6 @@ async def generate_voice(text, filename, voice_key="guy"):
     )
     await tts.save(filename)
     return filename
+
 
 

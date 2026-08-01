@@ -79,8 +79,8 @@ def build_drawtext_filter(subs, style_key="viral_yellow", caption="", ratio="16:
     style = SUBTITLE_STYLES.get(style_key, SUBTITLE_STYLES["viral_yellow"])
     filters = []
 
-    # Dynamic font size based on aspect ratio to guarantee text fits within margins
-    base_fontsize = 34 if ratio == "9:16" else 42
+    # Dynamic font size for 4-6 word sentence fragment captions
+    base_fontsize = 28 if ratio == "9:16" else 34
 
     if not subs:
         return ""

@@ -58,14 +58,14 @@ def build_timed_subtitles(words, actual_duration):
     if not cleaned_words:
         return []
 
-    # Chunk into 1-2 word punchy cards to prevent text overflow
+    # Chunk into 4-6 word sentence fragments for natural sentence-level captions
     chunks = []
     curr = []
     curr_len = 0
 
     for w in cleaned_words:
-        # If adding w exceeds 2 words or 14 chars, push current chunk
-        if len(curr) >= 2 or (curr_len + len(w)) > 12:
+        # Push chunk when exceeding 5 words or 30 chars for readable sentence fragments
+        if len(curr) >= 5 or (curr_len + len(w)) > 28:
             if curr:
                 chunks.append(" ".join(curr))
             curr = [w]
@@ -90,9 +90,15 @@ def build_timed_subtitles(words, actual_duration):
             end_time = round(actual_duration, 3)
 
         formatted_word = c.upper()
-        # If still over 14 chars, add newline between words for multiline centering
-        if len(formatted_word) > 14 and " " in formatted_word:
-            formatted_word = formatted_word.replace(" ", "\n", 1)
+        # If over 26 chars, add newline at first space for two-line centering
+        if len(formatted_word) > 26 and " " in formatted_word:
+            mid = len(formatted_word) // 2
+            # Find closest space to middle for balanced line split
+            left = formatted_word.rfind(" ", 0, mid)
+            right = formatted_word.find(" ", mid)
+            split_pos = left if (left != -1 and (right == -1 or mid - left <= right - mid)) else right
+            if split_pos != -1:
+                formatted_word = formatted_word[:split_pos] + "\n" + formatted_word[split_pos+1:]
 
         out.append({
             "word": formatted_word,

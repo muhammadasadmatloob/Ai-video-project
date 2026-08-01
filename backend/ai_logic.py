@@ -107,9 +107,10 @@ Script Style: {selected_instruction}
 
 IMPORTANT RULES FOR YOUTUBE RETENTION & LENGTH ACCURACY:
 1. Scene 1 narration MUST be an attention-grabbing, curiosity-driven viral hook. NO 'Welcome to' or 'In this video'!
-2. Total words across ALL scenes MUST equal roughly {total_words} words so that spoken voice narration fills the full extended duration. DO NOT make short 5-word scenes!
-3. Sentences must be clear, high-impact, and energetic without awkward silent pauses.
+2. Total words across ALL scenes MUST equal roughly {total_words} words so that spoken voice narration fills the full extended duration.
+3. Write FULL, COMPLETE, FLOWING SENTENCES (12 to 20 words per sentence) without mid-sentence commas or dashes so the voiceover speaks continuously in complete human sentences instead of pausing word-by-word!
 4. Keywords for each scene must be 2-3 visual search terms for HD stock videos (e.g. ['cinematic space', 'galaxy', 'abstract']).
+
 
 Return JSON format:
 {{
