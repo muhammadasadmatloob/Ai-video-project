@@ -43,7 +43,35 @@ export default function GenerationScreen({
   const [progress, setProgress] = useState(0);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
 
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playVoicePreview = (e: React.MouseEvent, voiceId: string) => {
+    e.stopPropagation();
+    setVoice(voiceId);
+    
+    if (playingVoice === voiceId) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setPlayingVoice(null);
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    const previewUrl = `${BACKEND_URL}/assets/voice_previews/${voiceId}.mp3`;
+    const audio = new Audio(previewUrl);
+    audioRef.current = audio;
+    setPlayingVoice(voiceId);
+    audio.play().catch((err) => console.error("Audio preview error:", err));
+    audio.onended = () => setPlayingVoice(null);
+  };
+
   const intervalRef = useRef<number | null>(null);
+
 
   useEffect(() => {
     return () => {
@@ -339,73 +367,47 @@ export default function GenerationScreen({
                 </div>
               </div>
 
-  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+              {/* Voice Tone Selector */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">
+                    AI Voice Preset (Click icon to preview)
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: "guy", name: "Energetic Male 🗣️" },
+                    { id: "christopher", name: "Deep Male 🎙️" },
+                    { id: "jenny", name: "Pro Female 👩" },
+                    { id: "ryan", name: "British Narrator 🇬🇧" },
+                  ].map((v) => (
+                    <div
+                      key={v.id}
+                      onClick={() => setVoice(v.id)}
+                      className={`p-3 rounded-2xl border flex items-center justify-between text-xs transition-all cursor-pointer ${
+                        voice === v.id
+                          ? "bg-purple-600/25 border-purple-500 text-purple-200 font-bold shadow-md shadow-purple-500/10"
+                          : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
+                      }`}
+                    >
+                      <span className="truncate">{v.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => playVoicePreview(e, v.id)}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          playingVoice === v.id
+                            ? "bg-purple-500 text-white border-purple-400 animate-pulse"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border-white/5"
+                        }`}
+                        title="Listen Voice Preview"
+                      >
+                        <span className="text-[10px] font-mono">{playingVoice === v.id ? "⏸" : "🔊"}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-  const playVoicePreview = (e: React.MouseEvent, voiceId: string) => {
-    e.stopPropagation();
-    setVoice(voiceId);
-    
-    if (playingVoice === voiceId) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      setPlayingVoice(null);
-      return;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-
-    const previewUrl = `${BACKEND_URL}/assets/voice_previews/${voiceId}.mp3`;
-    const audio = new Audio(previewUrl);
-    audioRef.current = audio;
-    setPlayingVoice(voiceId);
-    audio.play().catch((err) => console.error("Audio preview error:", err));
-    audio.onended = () => setPlayingVoice(null);
-  };
-
-  {/* Voice Tone Selector */}
-  <div className="space-y-2">
-    <div className="flex justify-between items-center ml-1">
-      <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">
-        AI Voice Preset (Click icon to preview)
-      </label>
-    </div>
-    <div className="grid grid-cols-2 gap-2.5">
-      {[
-        { id: "guy", name: "Energetic Male 🗣️" },
-        { id: "christopher", name: "Deep Male 🎙️" },
-        { id: "jenny", name: "Pro Female 👩" },
-        { id: "ryan", name: "British Narrator 🇬🇧" },
-      ].map((v) => (
-        <div
-          key={v.id}
-          onClick={() => setVoice(v.id)}
-          className={`p-3 rounded-2xl border flex items-center justify-between text-xs transition-all cursor-pointer ${
-            voice === v.id
-              ? "bg-purple-600/25 border-purple-500 text-purple-200 font-bold shadow-md shadow-purple-500/10"
-              : "bg-black/30 border-white/5 text-gray-400 hover:bg-black/40 hover:border-white/10"
-          }`}
-        >
-          <span className="truncate">{v.name}</span>
-          <button
-            type="button"
-            onClick={(e) => playVoicePreview(e, v.id)}
-            className={`p-1.5 rounded-lg border transition-colors ${
-              playingVoice === v.id
-                ? "bg-purple-500 text-white border-purple-400 animate-pulse"
-                : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border-white/5"
-            }`}
-            title="Listen Voice Preview"
-          >
-            <span className="text-[10px] font-mono">{playingVoice === v.id ? "⏸" : "🔊"}</span>
-          </button>
-        </div>
-      ))}
-    </div>
-  </div>
 
 
               {/* Subtitle Style Selector */}
