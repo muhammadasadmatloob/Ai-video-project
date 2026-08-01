@@ -139,7 +139,11 @@ async def process_video_job(script_data, job_id, user_folder, duration, orientat
             "subtitles": subtitles
         }
 
-    return await asyncio.gather(*[
-        process_scene(i, s) for i, s in enumerate(scenes)
-    ])
+    results = []
+    for i, s in enumerate(scenes):
+        res = await process_scene(i, s)
+        results.append(res)
+
+    return results
+
 

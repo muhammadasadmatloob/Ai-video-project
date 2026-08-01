@@ -210,11 +210,42 @@ def stitch_video(assets, job_id, user_folder, ratio, subtitle_style="viral_yello
         ]
         subprocess.run(bgm_cmd, check=True)
         if os.path.exists(merged_temp):
-            os.remove(merged_temp)
+            try:
+                os.remove(merged_temp)
+            except Exception:
+                pass
     else:
         if os.path.exists(output):
-            os.remove(output)
+            try:
+                os.remove(output)
+            except Exception:
+                pass
         os.rename(merged_temp, output)
 
+    # Clean up intermediate scene files to preserve memory & disk on Render free tier (512MB limit)
+    for a in assets:
+        try:
+            if os.path.exists(a["video"]):
+                os.remove(a["video"])
+            if os.path.exists(a["audio"]):
+                os.remove(a["audio"])
+        except Exception:
+            pass
+
+    for sf in scene_files:
+        try:
+            if os.path.exists(sf):
+                os.remove(sf)
+        except Exception:
+            pass
+
+    if os.path.exists(concat_file):
+        try:
+            os.remove(concat_file)
+        except Exception:
+            pass
+
     print(f"Final YouTube-level video created: {output}")
-    return output
+    return output
+
+
