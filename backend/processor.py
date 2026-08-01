@@ -95,7 +95,7 @@ def trim_audio_silence(raw_audio):
             FFMPEG_PATH,
             "-y",
             "-i", raw_audio,
-            "-af", "silenceremove=stop_periods=-1:stop_duration=0.1:stop_threshold=-38dB",
+            "-af", "silenceremove=stop_periods=-1:stop_duration=0.05:stop_threshold=-38dB,apad=pad_dur=0.5",
             trimmed
         ]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -103,6 +103,7 @@ def trim_audio_silence(raw_audio):
             os.replace(trimmed, raw_audio)
     except Exception as e:
         print(f"Silence trim notice: {e}")
+
 
 async def process_video_job(script_data, job_id, user_folder, duration, orientation, voice="guy"):
 

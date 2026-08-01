@@ -17,7 +17,7 @@ def clean_text_for_speech(text):
 
 async def generate_voice(text, filename, voice_key="guy"):
     voice_name = VOICE_MAP.get(voice_key.lower(), "en-US-GuyNeural")
-    rate = "+12%" if voice_key in ["guy", "jenny"] else "+8%"
+    rate = "+4%" # Moderate, clear speech pacing
     
     clean_prompt = clean_text_for_speech(text)
     
@@ -28,4 +28,5 @@ async def generate_voice(text, filename, voice_key="guy"):
     )
     await tts.save(filename)
     return filename
+
 

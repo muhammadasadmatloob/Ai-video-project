@@ -16,39 +16,39 @@ except Exception as e:
 
 def generate_local_fallback_script(topic, scene_count, style="viral_shorts", target_duration=30):
     title = topic.strip().title()
-    total_target_words = int(target_duration * 2.5)
+    total_target_words = int(target_duration * 2.25)
     words_per_scene = max(15, total_target_words // scene_count)
     
     if style == "viral_shorts":
         narrations = [
-            f"What if I told you that {topic} holds a secret that almost everyone gets wrong? Today we reveal the truth.",
-            f"When you examine {topic} up close, the reality is completely mind-blowing and defies common logic.",
-            f"Top researchers discovered that {topic} actually operates under rules nobody expected, changing how we view it.",
-            f"Every single day, new breakthroughs in {topic} continue to shock experts around the globe.",
-            f"Understanding the core mechanics of {topic} gives you a huge advantage in predicting what comes next.",
-            f"Subscribe now if {topic} blew your mind today, and hit the notification bell for more insane facts!"
+            f"What if I told you that {topic} holds a secret that almost everyone gets wrong? Today we reveal the complete truth.",
+            f"When you examine {topic} up close, the underlying reality is mind-blowing and defies conventional logic.",
+            f"Top researchers discovered that {topic} actually operates under rules nobody expected, changing our perspective entirely.",
+            f"Every single day, groundbreaking discoveries in {topic} continue to amaze experts across the globe.",
+            f"Understanding the core principles of {topic} gives you a profound advantage in predicting what happens next.",
+            f"Subscribe now if learning about {topic} amazed you today, and hit the notification bell for more fascinating content!"
         ]
     elif style == "documentary":
         narrations = [
-            f"Deep within the fascinating realm of {topic} lies an extraordinary mystery that has baffled historians for generations.",
-            f"For decades, top scientists have analyzed {topic}, uncovering unbelievable hidden facts beneath the surface.",
+            f"Deep within the fascinating realm of {topic} lies an extraordinary mystery that has captivated scholars for decades.",
+            f"For generations, dedicated scientists have analyzed {topic}, uncovering unbelievable hidden truths beneath the surface.",
             f"Every single discovery about {topic} pushes the boundaries of human knowledge and technology further into the future.",
-            f"As we examine {topic} more closely, the true scope of its impact becomes strikingly clear to everyone.",
-            f"The ongoing story of {topic} is far from over, and what comes next will redefine our understanding forever."
+            f"As we examine {topic} more closely, the true scope of its global impact becomes strikingly clear to everyone.",
+            f"The ongoing saga of {topic} is far from over, and what lies ahead will redefine our world forever."
         ]
     elif style == "educational":
         narrations = [
-            f"Here is how {topic} actually works in sixty seconds or less, explained in the simplest possible way!",
-            f"First, the foundational core of {topic} relies on natural principles that interact in powerful, unique ways.",
-            f"Next, when these core elements combine under pressure, {topic} produces remarkable and unexpected results.",
-            f"Finally, mastering {topic} unlocks new possibilities across technology, science, and everyday life for everyone."
+            f"Here is how {topic} actually works in clear, simple terms, explained step-by-step for complete understanding!",
+            f"First, the foundational core of {topic} relies on natural mechanics that interact in powerful and unique ways.",
+            f"Next, when these core components combine under specific conditions, {topic} produces remarkable results.",
+            f"Finally, mastering {topic} unlocks brand new possibilities across technology, science, and everyday life for everyone."
         ]
     else: # storytelling
         narrations = [
-            f"Imagine a world where {topic} suddenly changed the entire course of human history forever.",
-            f"Against all impossible odds, the journey through {topic} took an unexpected turn that nobody saw coming.",
-            f"What happened next with {topic} left the entire world absolutely speechless and searching for answers.",
-            f"This epic story of {topic} serves as an incredible reminder of what human ingenuity can accomplish."
+            f"Imagine a world where {topic} suddenly transformed the entire course of human history forever.",
+            f"Against all impossible odds, the journey through {topic} took a dramatic turn that nobody could have foreseen.",
+            f"What happened next with {topic} left the world speechless, sparking a quest for deeper understanding.",
+            f"This epic chronicle of {topic} serves as a powerful testament to what human curiosity can accomplish."
         ]
     
     # Adjust narrations to match scene_count
@@ -78,8 +78,8 @@ def generate_local_fallback_script(topic, scene_count, style="viral_shorts", tar
     }
 
 def generate_script_json(user_topic, duration, style="viral_shorts"):
-    scene_count = max(4, min(12, duration // 6))
-    total_words = int(duration * 2.5)
+    scene_count = max(4, min(10, duration // 5))
+    total_words = int(duration * 2.25)
     words_per_scene = max(15, total_words // scene_count)
 
     if not client:
